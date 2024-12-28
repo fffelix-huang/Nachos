@@ -78,6 +78,22 @@
 //	"format" -- should we initialize the disk?
 //----------------------------------------------------------------------
 
+#include <string>
+#include <vector>
+#include <iostream>
+#include <sstream>
+
+std::vector<std::string> split_string(const char* path, char delim) {
+    std::string              s(path);
+    std::istringstream       in(s);
+    std::vector<std::string> tokens;
+    std::string              token;
+    while (std::getline(in, token, delim)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
 FileSystem::FileSystem(bool format)
 {
     DEBUG(dbgFile, "Initializing the file system.");
