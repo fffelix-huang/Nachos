@@ -99,11 +99,17 @@ public:
 
 	void Print(); // List all the files and their contents
 
+	int Read(char* buf, int size, int id);
+	int Write(char* buf, int size, int id);
+
+	int Close(int id);
+
 private:
 	OpenFile *freeMapFile;	 // Bit map of free disk blocks,
 							 // represented as a file
 	OpenFile *directoryFile; // "Root" directory -- list of
 							 // file names, represented as a file
+	OpenFile* currentOpenFile;
 };
 
 #endif // FILESYS

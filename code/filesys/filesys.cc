@@ -81,6 +81,7 @@
 FileSystem::FileSystem(bool format)
 {
     DEBUG(dbgFile, "Initializing the file system.");
+    currentOpenFile = NULL;
     if (format)
     {
         PersistentBitmap *freeMap = new PersistentBitmap(NumSectors);
@@ -229,6 +230,20 @@ bool FileSystem::Create(char *name, int initialSize)
     return success;
 }
 
+int FileSystem::Read(char* buf, int size, int id) {
+    if(currentOpenFile == NULL || id != 0) {
+        return 0;
+    }
+    return currentOpenFile->Read(buf, size);
+}
+
+int FileSystem::Write(char* buf, int size, int id) {
+    if(currentOpenFile == NULL || id != 0) {
+        return 0;
+    }
+    return currentOpenFile->Write(buf, size);
+}
+
 //----------------------------------------------------------------------
 // FileSystem::Open
 // 	Open a file for reading and writing.
@@ -251,7 +266,16 @@ OpenFile * FileSystem::Open(char *name)
     if (sector >= 0)
         openFile = new OpenFile(sector); // name was found in directory
     delete directory;
+    currentOpenFile = openFile;
     return openFile; // return NULL if not found
+}
+
+int FileSystem::Close(int id) {
+    if(currentOpenFile == NULL || id != 0) {
+        return 0;
+    }
+    currentOpenFile = NULL;
+    return 1;
 }
 
 //----------------------------------------------------------------------
