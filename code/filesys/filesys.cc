@@ -203,13 +203,13 @@ FileSystem::~FileSystem()
 //	"initialSize" -- size of file to be created
 //----------------------------------------------------------------------
 
-bool FileSystem::Create(char *name, int initialSize) {
-    std::pair<int, std::string> traverseResult = Traverse(name, TRUE);
+bool FileSystem::Create(char *cname, int initialSize) {
+    std::pair<int, std::string> traverseResult = Traverse(cname, TRUE);
 
     Directory *directory = new Directory(NumDirEntries);
     OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
     directory->FetchFrom(dirOpenFile);
-    delete dirOpenFile;
+    char name[256];
     strcpy(name, traverseResult.second.c_str());
 
     PersistentBitmap *freeMap;
@@ -239,7 +239,7 @@ bool FileSystem::Create(char *name, int initialSize) {
                 success = TRUE;
                 // everthing worked, flush all changes back to disk
                 hdr->WriteBack(sector);
-                directory->WriteBack(directoryFile);
+                directory->WriteBack(dirOpenFile);
                 freeMap->WriteBack(freeMapFile);
             }
             delete hdr;
@@ -247,6 +247,7 @@ bool FileSystem::Create(char *name, int initialSize) {
         delete freeMap;
     }
     delete directory;
+    delete dirOpenFile;
     return success;
 }
 

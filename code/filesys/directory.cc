@@ -188,7 +188,11 @@ void Directory::List(std::string indent, bool recursive) {
     //printf("%sChildren: %d\n", indent.c_str(), (int)GetChildren().size());
     for (int i = 0; i < tableSize; i++) {
         if (table[i].inUse != FALSE) {
-            printf("%s[%c] %s\n", indent.c_str(), table[i].inUse, table[i].name);
+            if(recursive) {
+                printf("%s[%c] %s\n", indent.c_str(), table[i].inUse, table[i].name);
+            } else {
+                printf("%s\n", table[i].name);
+            }
 
             if(table[i].inUse == 'D' && recursive) {
                 int sector = table[i].sector;

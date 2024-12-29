@@ -108,8 +108,9 @@ static void Copy(char *from, char *to)
 
     // Copy the data in TransferSize chunks
     buffer = new char[TransferSize];
-    while ((amountRead = ReadPartial(fd, buffer, sizeof(char) * TransferSize)) > 0)
+    while ((amountRead = ReadPartial(fd, buffer, sizeof(char) * TransferSize)) > 0) {
         openFile->Write(buffer, amountRead);
+    }
     delete[] buffer;
 
     // Close the UNIX and the Nachos files
