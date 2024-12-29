@@ -284,22 +284,23 @@ std::pair<int, std::string> FileSystem::Traverse(char* cpath, bool isFile = TRUE
             continue;
         }
 
-        std::cout << "current directory sector: " << dirSector << std::endl;
-
         strcpy(dirname, paths[i].c_str());
         int sectorId = currentDir->Find(dirname);
-
-        std::cout << paths[i] << " " << sectorId << std::endl;
 
         if(sectorId == -1) {
             // Directory not found, create a new directory.
             ASSERT(freeMap->NumClear() > 0);
 
             int availSector = freeMap->FindAndSet();
-            std::cout << availSector << std::endl;
+
+            FileHeader* emptyDirHdr = new FileHeader;
+            ASSERT(emptyDirHdr->Allocate(freeMap, DirectoryFileSize));
+            emptyDirHdr->WriteBack(availSector);
+
+            OpenFile* emptyDirOpenFile = new OpenFile(availSector);
 
             Directory* emptyDirectory = new Directory(NumDirEntries);
-            OpenFile* emptyDirOpenFile = new OpenFile(availSector);
+            emptyDirectory->WriteBack(emptyDirOpenFile);
 
             currentDir->Add(dirname, availSector, 'D');
             OpenFile* curDirOpenFile = new OpenFile(dirSector);
@@ -307,7 +308,6 @@ std::pair<int, std::string> FileSystem::Traverse(char* cpath, bool isFile = TRUE
             sectorId = availSector;
 
             freeMap->WriteBack(freeMapFile);
-            emptyDirectory->WriteBack(emptyDirOpenFile);
             currentDir->WriteBack(curDirOpenFile);
 
             delete emptyDirectory;
@@ -315,12 +315,8 @@ std::pair<int, std::string> FileSystem::Traverse(char* cpath, bool isFile = TRUE
             delete curDirOpenFile;
         }
 
-        std::cout << "next sector: " << sectorId << std::endl;
-
         OpenFile* nextDirOpenFile = new OpenFile(sectorId);
         currentDir->FetchFrom(nextDirOpenFile);
-
-        std::cout << "ok" << std::endl;
 
         dirSector = sectorId;
 
@@ -430,7 +426,6 @@ bool FileSystem::Remove(char* name)
 
 void FileSystem::List(bool recursive) {
     Directory *directory = new Directory(NumDirEntries);
-
     directory->FetchFrom(directoryFile);
     directory->List("", recursive);
     delete directory;

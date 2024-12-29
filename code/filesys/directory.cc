@@ -185,6 +185,7 @@ char Directory::TypeOf(std::string name) {
 //----------------------------------------------------------------------
 
 void Directory::List(std::string indent, bool recursive) {
+    //printf("%sChildren: %d\n", indent.c_str(), (int)GetChildren().size());
     for (int i = 0; i < tableSize; i++) {
         if (table[i].inUse != FALSE) {
             printf("%s[%c] %s\n", indent.c_str(), table[i].inUse, table[i].name);
