@@ -21,8 +21,10 @@
 
 #include "copyright.h"
 #include "utility.h"
+#include "debug.h"
 #include "filehdr.h"
 #include "directory.h"
+#include "pbitmap.h"
 
 #include <vector>
 #include <string>
@@ -91,7 +93,7 @@ void Directory::WriteBack(OpenFile *file)
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
 
-int Directory::FindIndex(char *name)
+int Directory::FindIndex(const char *name)
 {
     for (int i = 0; i < tableSize; i++)
         if (table[i].inUse != FALSE && !strncmp(table[i].name, name, FileNameMaxLen))
@@ -108,7 +110,7 @@ int Directory::FindIndex(char *name)
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
 
-int Directory::Find(char *name) {
+int Directory::Find(const char *name) {
     int i = FindIndex(name);
 
     if (i != -1)
@@ -151,13 +153,44 @@ bool Directory::Add(char *name, int newSector, char type) {
 //	"name" -- the file name to be removed
 //----------------------------------------------------------------------
 
-bool Directory::Remove(char *name) {
+bool Directory::Remove(PersistentBitmap* freeMap, const char *name, bool recursive) {
     int i = FindIndex(name);
 
-    if (i == -1)
+    if (i == -1) {
         return FALSE; // name not in directory
+    }
+
+    FileHeader* fileHdr = new FileHeader;
+    fileHdr->FetchFrom(table[i].sector);
+
+    if(table[i].inUse == 'F') {
+        fileHdr->Deallocate(freeMap);
+    }
+
+    if(table[i].inUse == 'D' && recursive) {
+        OpenFile* openFile = new OpenFile(table[i].sector);
+        Directory* directory = new Directory(tableSize);
+        directory->FetchFrom(openFile);
+        directory->RemoveAll(freeMap);
+
+        delete openFile;
+        delete directory;
+    }
+
+    ASSERT(freeMap->Test(table[i].sector));
+    freeMap->Clear(table[i].sector);
     table[i].inUse = FALSE;
+
+    delete fileHdr;
+
     return TRUE;
+}
+
+void Directory::RemoveAll(PersistentBitmap* freeMap) {
+    std::vector<std::string> children = GetChildren();
+    for(int i = 0; i < (int)children.size(); i++) {
+        Remove(freeMap, children[i].c_str(), TRUE);
+    }
 }
 
 std::vector<std::string> Directory::GetChildren() {

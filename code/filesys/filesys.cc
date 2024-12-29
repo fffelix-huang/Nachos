@@ -385,8 +385,7 @@ int FileSystem::Close(int id) {
 //	"name" -- the text name of the file to be removed
 //----------------------------------------------------------------------
 
-bool FileSystem::Remove(const char* cname)
-{
+bool FileSystem::Remove(const char* cname, bool recursive) {
     std::pair<int, std::string> traverseResult = Traverse(cname);
 
     Directory *directory = new Directory(NumDirEntries);
@@ -396,26 +395,33 @@ bool FileSystem::Remove(const char* cname)
     char name[10];
     strcpy(name, traverseResult.second.c_str());
 
-    PersistentBitmap *freeMap;
+    PersistentBitmap *freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+
+    directory->Remove(freeMap, name, recursive);
+
+    /*
     FileHeader *fileHdr;
     int sector = directory->Find(name);
 
     if (sector == -1) {
         delete directory;
+        delete freeMap;
         return FALSE; // file not found
     }
+
     fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
 
-    freeMap = new PersistentBitmap(freeMapFile, NumSectors);
 
     fileHdr->Deallocate(freeMap); // remove data blocks
     freeMap->Clear(sector);       // remove header block
-    directory->Remove(name);
+
+    directory->Remove(name, recursive);
+    */
 
     freeMap->WriteBack(freeMapFile);     // flush to disk
     directory->WriteBack(dirOpenFile); // flush to disk
-    delete fileHdr;
+
     delete directory;
     delete freeMap;
     return TRUE;

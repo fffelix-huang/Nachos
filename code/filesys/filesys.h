@@ -76,7 +76,7 @@ public:
 		return new OpenFile(fileDescriptor);
 	}
 
-	bool Remove(const char *name) { return Unlink(name) == 0; }
+	bool Remove(const char *name, bool recursive) { return Unlink(name) == 0; }
 
 	std::pair<int, std::string> Traverse(const char* path, bool isFile);
 
@@ -101,7 +101,7 @@ public:
 
 	OpenFile *Open(const char *name); // Open a file (UNIX open)
 
-	bool Remove(const char *name); // Delete a file (UNIX unlink)
+	bool Remove(const char *name, bool recursive); // Delete a file (UNIX unlink)
 
 	void List(const char* name, bool recursive); // List all the files in the file system
 

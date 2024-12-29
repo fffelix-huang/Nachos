@@ -18,6 +18,8 @@
 #define DIRECTORY_H
 
 #include "openfile.h"
+#include "debug.h"
+#include "pbitmap.h"
 
 #include <vector>
 #include <string>
@@ -63,7 +65,7 @@ public:
     void WriteBack(OpenFile *file); // Write modifications to
                                     // directory contents back to disk
 
-    int Find(char *name); // Find the sector number of the
+    int Find(const char *name); // Find the sector number of the
                           // FileHeader for file: "name"
     
     std::vector<std::string> GetChildren();
@@ -72,7 +74,9 @@ public:
 
     bool Add(char *name, int newSector, char type); // Add a file name into the directory
 
-    bool Remove(char *name); // Remove a file from the directory
+    bool Remove(PersistentBitmap* bitMap, const char *name, bool recursive); // Remove a file from the directory
+
+    void RemoveAll(PersistentBitmap* bitMap); // Remove all child
 
     void List(std::string indent, bool recursive);  // Print the names of all the files
                   //  in the directory
@@ -92,7 +96,7 @@ private:
     DirectoryEntry *table; // Table of pairs:
                            // <file name, file header location>
 
-    int FindIndex(char *name); // Find the index into the directory
+    int FindIndex(const char *name); // Find the index into the directory
                                //  table corresponding to "name"
 };
 
