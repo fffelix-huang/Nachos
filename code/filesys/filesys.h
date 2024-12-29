@@ -37,6 +37,12 @@
 #include "sysdep.h"
 #include "openfile.h"
 
+#include <string>
+#include <vector>
+#include <iostream>
+#include <sstream>
+#include <utility>
+
 typedef int OpenFileId;
 
 #ifdef FILESYS_STUB // Temporarily implement file system calls as
@@ -72,6 +78,8 @@ public:
 
 	bool Remove(char *name) { return Unlink(name) == 0; }
 
+	std::pair<int, std::string> Traverse(char* path);
+
 	OpenFile *fileDescriptorTable[20];
 };
 
@@ -103,6 +111,8 @@ public:
 	int Write(char* buf, int size, int id);
 
 	int Close(int id);
+
+	std::pair<int, std::string> Traverse(char* cpath);
 
 private:
 	OpenFile *freeMapFile;	 // Bit map of free disk blocks,

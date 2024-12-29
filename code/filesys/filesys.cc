@@ -82,6 +82,7 @@
 #include <vector>
 #include <iostream>
 #include <sstream>
+#include <utility>
 
 std::vector<std::string> split_string(const char* path, char delim) {
     std::string              s(path);
@@ -202,18 +203,21 @@ FileSystem::~FileSystem()
 //	"initialSize" -- size of file to be created
 //----------------------------------------------------------------------
 
-bool FileSystem::Create(char *name, int initialSize)
-{
-    Directory *directory;
+bool FileSystem::Create(char *name, int initialSize) {
+    std::pair<int, std::string> traverseResult = Traverse(name);
+
+    Directory *directory = new Directory(NumDirEntries);
+    OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
+    directory->FetchFrom(dirOpenFile);
+    delete dirOpenFile;
+    strcpy(name, traverseResult.second.c_str());
+
     PersistentBitmap *freeMap;
     FileHeader *hdr;
     int sector;
     bool success;
 
     DEBUG(dbgFile, "Creating file " << name << " size " << initialSize);
-
-    directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
 
     if (directory->Find(name) != -1)
         success = FALSE; // file is already in directory
@@ -260,6 +264,57 @@ int FileSystem::Write(char* buf, int size, int id) {
     return currentOpenFile->Write(buf, size);
 }
 
+// Returns the sector of the target directory and the string of the file name.
+std::pair<int, std::string> FileSystem::Traverse(char* cpath) {
+    Directory* currentDir = new Directory(NumDirEntries);
+    currentDir->FetchFrom(directoryFile);
+
+    PersistentBitmap *freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+
+    std::string path(cpath);
+
+    std::vector<std::string> paths = split_string(path.c_str(), '/');
+    ASSERT((int)paths.size() >= 1);
+
+    int dirSector = DirectorySector;
+    char dirname[10];
+
+    for(int i = 0; i < (int)paths.size() - 1; i++) {
+        if(paths[i].empty()) {
+            continue;
+        }
+
+        strcpy(dirname, paths[i].c_str());
+        int sectorId = currentDir->Find(dirname);
+
+        if(sectorId == -1) {
+            // Directory not found, create a new directory.
+            ASSERT(freeMap->NumClear() > 0);
+
+            int availSector = freeMap->FindAndSet();
+            Directory* emptyDirectory = new Directory(NumDirEntries);
+            OpenFile* openFile = new OpenFile(availSector);
+            emptyDirectory->WriteBack(openFile);
+            delete openFile;
+            delete emptyDirectory;
+
+            currentDir->Add(dirname, availSector);
+            sectorId = availSector;
+        }
+
+        OpenFile* nextDirOpenFile = new OpenFile(sectorId);
+        currentDir->FetchFrom(nextDirOpenFile);
+        delete nextDirOpenFile;
+
+        dirSector = sectorId;
+    }
+
+    delete currentDir;
+    delete freeMap;
+
+    return std::make_pair(dirSector, paths.back());
+}
+
 //----------------------------------------------------------------------
 // FileSystem::Open
 // 	Open a file for reading and writing.
@@ -270,15 +325,22 @@ int FileSystem::Write(char* buf, int size, int id) {
 //	"name" -- the text name of the file to be opened
 //----------------------------------------------------------------------
 
-OpenFile * FileSystem::Open(char *name)
+OpenFile* FileSystem::Open(char* name)
 {
+    std::pair<int, std::string> traverseResult = Traverse(name);
+
     Directory *directory = new Directory(NumDirEntries);
-    OpenFile *openFile = NULL;
+    OpenFile *openFile = new OpenFile(traverseResult.first);
+    directory->FetchFrom(openFile);
+    delete openFile;
+
+    char filename[10];
+    strcpy(filename, traverseResult.second.c_str());
+
     int sector;
 
     DEBUG(dbgFile, "Opening file" << name);
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name);
+    sector = directory->Find(filename);
     if (sector >= 0)
         openFile = new OpenFile(sector); // name was found in directory
     delete directory;
@@ -308,18 +370,21 @@ int FileSystem::Close(int id) {
 //	"name" -- the text name of the file to be removed
 //----------------------------------------------------------------------
 
-bool FileSystem::Remove(char *name)
+bool FileSystem::Remove(char* name)
 {
-    Directory *directory;
+    std::pair<int, std::string> traverseResult = Traverse(name);
+
+    Directory *directory = new Directory(NumDirEntries);
+    OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
+    directory->FetchFrom(dirOpenFile);
+    delete dirOpenFile;
+    strcpy(name, traverseResult.second.c_str());
+
     PersistentBitmap *freeMap;
     FileHeader *fileHdr;
-    int sector;
+    int sector = directory->Find(name);
 
-    directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name);
-    if (sector == -1)
-    {
+    if (sector == -1) {
         delete directory;
         return FALSE; // file not found
     }
