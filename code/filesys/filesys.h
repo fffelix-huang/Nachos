@@ -78,7 +78,7 @@ public:
 
 	bool Remove(char *name) { return Unlink(name) == 0; }
 
-	std::pair<int, std::string> Traverse(char* path);
+	std::pair<int, std::string> Traverse(char* path, bool isFile);
 
 	OpenFile *fileDescriptorTable[20];
 };
@@ -103,7 +103,7 @@ public:
 
 	bool Remove(char *name); // Delete a file (UNIX unlink)
 
-	void List(); // List all the files in the file system
+	void List(bool recursive); // List all the files in the file system
 
 	void Print(); // List all the files and their contents
 
@@ -112,7 +112,7 @@ public:
 
 	int Close(int id);
 
-	std::pair<int, std::string> Traverse(char* cpath);
+	std::pair<int, std::string> Traverse(char* cpath, bool isFile);
 
 private:
 	OpenFile *freeMapFile;	 // Bit map of free disk blocks,

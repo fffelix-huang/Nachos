@@ -62,7 +62,7 @@
 // supports extensible files, the directory size sets the maximum number
 // of files that can be loaded onto the disk.
 #define FreeMapFileSize (NumSectors / BitsInByte)
-#define NumDirEntries 10
+#define NumDirEntries 64
 #define DirectoryFileSize (sizeof(DirectoryEntry) * NumDirEntries)
 
 //----------------------------------------------------------------------
@@ -204,7 +204,7 @@ FileSystem::~FileSystem()
 //----------------------------------------------------------------------
 
 bool FileSystem::Create(char *name, int initialSize) {
-    std::pair<int, std::string> traverseResult = Traverse(name);
+    std::pair<int, std::string> traverseResult = Traverse(name, TRUE);
 
     Directory *directory = new Directory(NumDirEntries);
     OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
@@ -227,7 +227,7 @@ bool FileSystem::Create(char *name, int initialSize) {
         sector = freeMap->FindAndSet(); // find a sector to hold the file header
         if (sector == -1)
             success = FALSE; // no free block for file header
-        else if (!directory->Add(name, sector))
+        else if (!directory->Add(name, sector, 'F'))
             success = FALSE; // no space in directory
         else
         {
@@ -265,7 +265,7 @@ int FileSystem::Write(char* buf, int size, int id) {
 }
 
 // Returns the sector of the target directory and the string of the file name.
-std::pair<int, std::string> FileSystem::Traverse(char* cpath) {
+std::pair<int, std::string> FileSystem::Traverse(char* cpath, bool isFile = TRUE) {
     Directory* currentDir = new Directory(NumDirEntries);
     currentDir->FetchFrom(directoryFile);
 
@@ -279,34 +279,52 @@ std::pair<int, std::string> FileSystem::Traverse(char* cpath) {
     int dirSector = DirectorySector;
     char dirname[10];
 
-    for(int i = 0; i < (int)paths.size() - 1; i++) {
+    for(int i = 0; i < (int)paths.size() - isFile; i++) {
         if(paths[i].empty()) {
             continue;
         }
 
+        std::cout << "current directory sector: " << dirSector << std::endl;
+
         strcpy(dirname, paths[i].c_str());
         int sectorId = currentDir->Find(dirname);
+
+        std::cout << paths[i] << " " << sectorId << std::endl;
 
         if(sectorId == -1) {
             // Directory not found, create a new directory.
             ASSERT(freeMap->NumClear() > 0);
 
             int availSector = freeMap->FindAndSet();
-            Directory* emptyDirectory = new Directory(NumDirEntries);
-            OpenFile* openFile = new OpenFile(availSector);
-            emptyDirectory->WriteBack(openFile);
-            delete openFile;
-            delete emptyDirectory;
+            std::cout << availSector << std::endl;
 
-            currentDir->Add(dirname, availSector);
+            Directory* emptyDirectory = new Directory(NumDirEntries);
+            OpenFile* emptyDirOpenFile = new OpenFile(availSector);
+
+            currentDir->Add(dirname, availSector, 'D');
+            OpenFile* curDirOpenFile = new OpenFile(dirSector);
+
             sectorId = availSector;
+
+            freeMap->WriteBack(freeMapFile);
+            emptyDirectory->WriteBack(emptyDirOpenFile);
+            currentDir->WriteBack(curDirOpenFile);
+
+            delete emptyDirectory;
+            delete emptyDirOpenFile;
+            delete curDirOpenFile;
         }
+
+        std::cout << "next sector: " << sectorId << std::endl;
 
         OpenFile* nextDirOpenFile = new OpenFile(sectorId);
         currentDir->FetchFrom(nextDirOpenFile);
-        delete nextDirOpenFile;
+
+        std::cout << "ok" << std::endl;
 
         dirSector = sectorId;
+
+        delete nextDirOpenFile;
     }
 
     delete currentDir;
@@ -410,12 +428,11 @@ bool FileSystem::Remove(char* name)
 // 	List all the files in the file system directory.
 //----------------------------------------------------------------------
 
-void FileSystem::List()
-{
+void FileSystem::List(bool recursive) {
     Directory *directory = new Directory(NumDirEntries);
 
     directory->FetchFrom(directoryFile);
-    directory->List();
+    directory->List("", recursive);
     delete directory;
 }
 
@@ -429,8 +446,7 @@ void FileSystem::List()
 //	      the data in the file
 //----------------------------------------------------------------------
 
-void FileSystem::Print()
-{
+void FileSystem::Print() {
     FileHeader *bitHdr = new FileHeader;
     FileHeader *dirHdr = new FileHeader;
     PersistentBitmap *freeMap = new PersistentBitmap(freeMapFile, NumSectors);

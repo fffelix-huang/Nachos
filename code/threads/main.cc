@@ -154,6 +154,7 @@ void Print(char *name)
 static void CreateDirectory(char *name)
 {
     // MP4 Assignment
+    (void)kernel->fileSystem->Traverse(name, FALSE);
 }
 
 //----------------------------------------------------------------------
@@ -337,7 +338,7 @@ int main(int argc, char **argv)
     }
     if (dirListFlag)
     {
-        kernel->fileSystem->List();
+        kernel->fileSystem->List(recursiveListFlag);
     }
     if (mkdirFlag)
     {

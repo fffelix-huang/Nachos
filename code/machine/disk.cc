@@ -19,6 +19,8 @@
 #include "sysdep.h"
 #include "main.h"
 
+#include <iostream>
+
 // We put a magic number at the front of the UNIX file representing the
 // disk, to make it less likely we will accidentally treat a useful file
 // as a disk (which would probably trash the file's contents).

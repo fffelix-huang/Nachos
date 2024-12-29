@@ -24,6 +24,9 @@
 #include "filehdr.h"
 #include "directory.h"
 
+#include <vector>
+#include <string>
+
 //----------------------------------------------------------------------
 // Directory::Directory
 // 	Initialize a directory; initially, the directory is completely
@@ -91,7 +94,7 @@ void Directory::WriteBack(OpenFile *file)
 int Directory::FindIndex(char *name)
 {
     for (int i = 0; i < tableSize; i++)
-        if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
+        if (table[i].inUse != FALSE && !strncmp(table[i].name, name, FileNameMaxLen))
             return i;
     return -1; // name not in directory
 }
@@ -105,8 +108,7 @@ int Directory::FindIndex(char *name)
 //	"name" -- the file name to look up
 //----------------------------------------------------------------------
 
-int Directory::Find(char *name)
-{
+int Directory::Find(char *name) {
     int i = FindIndex(name);
 
     if (i != -1)
@@ -123,21 +125,21 @@ int Directory::Find(char *name)
 //
 //	"name" -- the name of the file being added
 //	"newSector" -- the disk sector containing the added file's header
+//  "type" -- directory or file
 //----------------------------------------------------------------------
 
-bool Directory::Add(char *name, int newSector)
-{
+bool Directory::Add(char *name, int newSector, char type) {
     if (FindIndex(name) != -1)
         return FALSE;
 
-    for (int i = 0; i < tableSize; i++)
-        if (!table[i].inUse)
-        {
-            table[i].inUse = TRUE;
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse == FALSE) {
+            table[i].inUse = type;
             strncpy(table[i].name, name, FileNameMaxLen);
             table[i].sector = newSector;
             return TRUE;
         }
+    }
     return FALSE; // no space.  Fix when we have extensible files.
 }
 
@@ -149,8 +151,7 @@ bool Directory::Add(char *name, int newSector)
 //	"name" -- the file name to be removed
 //----------------------------------------------------------------------
 
-bool Directory::Remove(char *name)
-{
+bool Directory::Remove(char *name) {
     int i = FindIndex(name);
 
     if (i == -1)
@@ -159,16 +160,46 @@ bool Directory::Remove(char *name)
     return TRUE;
 }
 
+std::vector<std::string> Directory::GetChildren() {
+    std::vector<std::string> children;
+    for(int i = 0; i < tableSize; i++) {
+        if(table[i].inUse != FALSE) {
+            children.push_back(std::string(table[i].name));
+        }
+    }
+    return children;
+}
+
+char Directory::TypeOf(std::string name) {
+    for(int i = 0; i < tableSize; i++) {
+        if(table[i].inUse != FALSE && !strncmp(table[i].name, name.c_str(), FileNameMaxLen)) {
+            return table[i].inUse;
+        }
+    }
+    return FALSE;
+}
+
 //----------------------------------------------------------------------
 // Directory::List
 // 	List all the file names in the directory.
 //----------------------------------------------------------------------
 
-void Directory::List()
-{
-    for (int i = 0; i < tableSize; i++)
-        if (table[i].inUse)
-            printf("%s\n", table[i].name);
+void Directory::List(std::string indent, bool recursive) {
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse != FALSE) {
+            printf("%s[%c] %s\n", indent.c_str(), table[i].inUse, table[i].name);
+
+            if(table[i].inUse == 'D' && recursive) {
+                int sector = table[i].sector;
+                Directory* tmpDirectory = new Directory(tableSize);
+                OpenFile* tmpOpenFile = new OpenFile(sector);
+                tmpDirectory->FetchFrom(tmpOpenFile);
+                tmpDirectory->List(indent + "    ", recursive);
+                delete tmpDirectory;
+                delete tmpOpenFile;
+            }
+        }
+    }
 }
 
 //----------------------------------------------------------------------
@@ -177,18 +208,17 @@ void Directory::List()
 //	and the contents of each file.  For debugging.
 //----------------------------------------------------------------------
 
-void Directory::Print()
-{
+void Directory::Print() {
     FileHeader *hdr = new FileHeader;
 
     printf("Directory contents:\n");
-    for (int i = 0; i < tableSize; i++)
-        if (table[i].inUse)
-        {
+    for (int i = 0; i < tableSize; i++) {
+        if (table[i].inUse != FALSE) {
             printf("Name: %s, Sector: %d\n", table[i].name, table[i].sector);
             hdr->FetchFrom(table[i].sector);
             hdr->Print();
         }
+    }
     printf("\n");
     delete hdr;
 }
