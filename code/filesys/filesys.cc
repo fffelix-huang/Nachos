@@ -392,9 +392,8 @@ bool FileSystem::Remove(const char* cname)
     Directory *directory = new Directory(NumDirEntries);
     OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
     directory->FetchFrom(dirOpenFile);
-    delete dirOpenFile;
 
-    char name[256];
+    char name[10];
     strcpy(name, traverseResult.second.c_str());
 
     PersistentBitmap *freeMap;
@@ -415,7 +414,7 @@ bool FileSystem::Remove(const char* cname)
     directory->Remove(name);
 
     freeMap->WriteBack(freeMapFile);     // flush to disk
-    directory->WriteBack(directoryFile); // flush to disk
+    directory->WriteBack(dirOpenFile); // flush to disk
     delete fileHdr;
     delete directory;
     delete freeMap;
