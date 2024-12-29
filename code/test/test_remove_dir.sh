@@ -7,7 +7,10 @@
 ../build.linux/nachos -cp num_1000.txt /t0/1000
 ../build.linux/nachos -cp num_1000.txt /t1/1000
 ../build.linux/nachos -cp num_1000.txt /t2/1000
+../build.linux/nachos -lr /
+echo ================
 ../build.linux/nachos -rr /t0
 ../build.linux/nachos -rr /t2/t1
 ../build.linux/nachos -lr /
+echo ================
 ../build.linux/nachos -l /
