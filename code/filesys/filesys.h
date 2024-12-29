@@ -103,7 +103,7 @@ public:
 
 	bool Remove(const char *name); // Delete a file (UNIX unlink)
 
-	void List(bool recursive); // List all the files in the file system
+	void List(const char* name, bool recursive); // List all the files in the file system
 
 	void Print(); // List all the files and their contents
 

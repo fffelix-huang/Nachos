@@ -426,11 +426,17 @@ bool FileSystem::Remove(const char* cname)
 // 	List all the files in the file system directory.
 //----------------------------------------------------------------------
 
-void FileSystem::List(bool recursive) {
+void FileSystem::List(const char* name, bool recursive) {
+    std::pair<int, std::string> traverseResult = Traverse(name, FALSE);
+
     Directory *directory = new Directory(NumDirEntries);
-    directory->FetchFrom(directoryFile);
+    OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
+
+    directory->FetchFrom(dirOpenFile);
     directory->List("", recursive);
+
     delete directory;
+    delete dirOpenFile;
 }
 
 //----------------------------------------------------------------------
