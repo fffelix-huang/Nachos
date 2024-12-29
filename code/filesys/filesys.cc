@@ -203,7 +203,7 @@ FileSystem::~FileSystem()
 //	"initialSize" -- size of file to be created
 //----------------------------------------------------------------------
 
-bool FileSystem::Create(char *cname, int initialSize) {
+bool FileSystem::Create(const char *cname, int initialSize) {
     std::pair<int, std::string> traverseResult = Traverse(cname, TRUE);
 
     Directory *directory = new Directory(NumDirEntries);
@@ -266,7 +266,7 @@ int FileSystem::Write(char* buf, int size, int id) {
 }
 
 // Returns the sector of the target directory and the string of the file name.
-std::pair<int, std::string> FileSystem::Traverse(char* cpath, bool isFile = TRUE) {
+std::pair<int, std::string> FileSystem::Traverse(const char* cpath, bool isFile = TRUE) {
     Directory* currentDir = new Directory(NumDirEntries);
     currentDir->FetchFrom(directoryFile);
 
@@ -340,7 +340,7 @@ std::pair<int, std::string> FileSystem::Traverse(char* cpath, bool isFile = TRUE
 //	"name" -- the text name of the file to be opened
 //----------------------------------------------------------------------
 
-OpenFile* FileSystem::Open(char* name)
+OpenFile* FileSystem::Open(const char* name)
 {
     std::pair<int, std::string> traverseResult = Traverse(name);
 
@@ -385,14 +385,16 @@ int FileSystem::Close(int id) {
 //	"name" -- the text name of the file to be removed
 //----------------------------------------------------------------------
 
-bool FileSystem::Remove(char* name)
+bool FileSystem::Remove(const char* cname)
 {
-    std::pair<int, std::string> traverseResult = Traverse(name);
+    std::pair<int, std::string> traverseResult = Traverse(cname);
 
     Directory *directory = new Directory(NumDirEntries);
     OpenFile* dirOpenFile = new OpenFile(traverseResult.first);
     directory->FetchFrom(dirOpenFile);
     delete dirOpenFile;
+
+    char name[256];
     strcpy(name, traverseResult.second.c_str());
 
     PersistentBitmap *freeMap;

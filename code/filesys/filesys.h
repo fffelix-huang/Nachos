@@ -57,7 +57,7 @@ public:
 			fileDescriptorTable[i] = NULL;
 	}
 
-	bool Create(char *name)
+	bool Create(const char *name)
 	{
 		int fileDescriptor = OpenForWrite(name);
 
@@ -67,7 +67,7 @@ public:
 		return TRUE;
 	}
 
-	OpenFile *Open(char *name)
+	OpenFile *Open(const char *name)
 	{
 		int fileDescriptor = OpenForReadWrite(name, FALSE);
 
@@ -76,9 +76,9 @@ public:
 		return new OpenFile(fileDescriptor);
 	}
 
-	bool Remove(char *name) { return Unlink(name) == 0; }
+	bool Remove(const char *name) { return Unlink(name) == 0; }
 
-	std::pair<int, std::string> Traverse(char* path, bool isFile);
+	std::pair<int, std::string> Traverse(const char* path, bool isFile);
 
 	OpenFile *fileDescriptorTable[20];
 };
@@ -96,12 +96,12 @@ public:
 	// MP4 mod tag
 	~FileSystem();
 
-	bool Create(char *name, int initialSize);
+	bool Create(const char *name, int initialSize);
 	// Create a file (UNIX creat)
 
-	OpenFile *Open(char *name); // Open a file (UNIX open)
+	OpenFile *Open(const char *name); // Open a file (UNIX open)
 
-	bool Remove(char *name); // Delete a file (UNIX unlink)
+	bool Remove(const char *name); // Delete a file (UNIX unlink)
 
 	void List(bool recursive); // List all the files in the file system
 
@@ -112,7 +112,7 @@ public:
 
 	int Close(int id);
 
-	std::pair<int, std::string> Traverse(char* cpath, bool isFile);
+	std::pair<int, std::string> Traverse(const char* cpath, bool isFile);
 
 private:
 	OpenFile *freeMapFile;	 // Bit map of free disk blocks,
